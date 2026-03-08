@@ -19,3 +19,17 @@ export const getUserProfile = async (userId: number) => {
 
   return user;
 };
+
+export const deleteUserProfile = async (userId: number) => {
+
+  await prisma.users.delete({
+    where: {
+      id: userId
+    }
+  });
+
+  return {
+    message: "User deleted successfully"
+  };
+
+};
