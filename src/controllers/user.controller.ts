@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { getUserProfile } from "../services/user.service";
 import { deleteUserProfile } from "../services/user.service";
 import { updateUserProfile } from "../services/user.service";
-
+import { deleteUserByAdmin } from "../services/user.service";
 export const getProfile = async (req: Request, res: Response) => {
   try {
 
@@ -56,6 +56,26 @@ export const updateProfile = async (req: Request, res: Response) => {
   } catch (error: any) {
 
     res.status(400).json({
+      message: error.message
+    });
+
+  }
+};
+
+
+
+export const deleteUser = async (req: Request, res: Response) => {
+  try {
+
+    const userId = Number(req.params.id);
+
+    const result = await deleteUserByAdmin(userId);
+
+    res.json(result);
+
+  } catch (error: any) {
+
+    res.status(404).json({
       message: error.message
     });
 

@@ -75,3 +75,24 @@ export const updateUserProfile = async (
 
   return user;
 };
+
+
+export const deleteUserByAdmin = async (userId: number) => {
+
+  const user = await prisma.users.findUnique({
+    where: { id: userId }
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  await prisma.users.delete({
+    where: { id: userId }
+  });
+
+  return {
+    message: "User deleted successfully"
+  };
+
+};
