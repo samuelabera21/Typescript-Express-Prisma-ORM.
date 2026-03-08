@@ -1,5 +1,5 @@
 import prisma from "../config/prisma";
-
+import bcrypt from "bcrypt";
 
 export const registerUser = async (
   email: string,
@@ -15,6 +15,9 @@ export const registerUser = async (
         if (existingUser) {
         return "User already exists";
         }
+    //if not exist then i need to hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
 
 
   
