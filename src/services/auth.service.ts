@@ -19,7 +19,13 @@ export const registerUser = async (
     const hashedPassword = await bcrypt.hash(password, 10);
     
 
-
+const user = await prisma.users.create({
+  data: {
+    email: email,
+    password_hash: hashedPassword,
+    name: name,
+  },
+});
   
   return "Register logic coming soon";
 };
