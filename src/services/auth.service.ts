@@ -31,7 +31,6 @@ export const registerUser = async (
   return user;
 };
 
-
 export const loginUser = async (
   email: string,
   password: string
@@ -54,23 +53,52 @@ export const loginUser = async (
     throw new Error("Invalid email or password");
   }
 
-  const token = jwt.sign(
+  const accessToken = jwt.sign(
     {
       userId: user.id,
-      email: user.email,
-      role: user.role,
+      role: user.role
     },
     process.env.JWT_SECRET!,
-    { expiresIn: "1h" }
+    { expiresIn: "15m" }
+  );
+
+  const refreshToken = jwt.sign(
+    {
+      userId: user.id
+    },
+    process.env.JWT_REFRESH_SECRET!,
+    { expiresIn: "7d" }
   );
 
   return {
-    token,
+    accessToken,
+    refreshToken,
     user: {
       id: user.id,
       email: user.email,
       name: user.name,
-      role: user.role,
+      role: user.role
+    }
+  };
+};
+
+
+export const refreshAccessToken = async (token: string) => {
+
+  const decoded = jwt.verify(
+    token,
+    process.env.JWT_REFRESH_SECRET!
+  ) as any;
+
+  const newAccessToken = jwt.sign(
+    {
+      userId: decoded.userId
     },
+    process.env.JWT_SECRET!,
+    { expiresIn: "15m" }
+  );
+
+  return {
+    accessToken: newAccessToken
   };
 };
