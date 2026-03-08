@@ -95,4 +95,4 @@ export const deleteUserByAdmin = async (userId: number) => {
     message: "User deleted successfully"
   };
 
-};
+};      
