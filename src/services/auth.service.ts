@@ -15,7 +15,7 @@ export const registerUser = async (
         });
 
         if (existingUser) {
-        return "User already exists";
+        throw new Error("User already exists");
         }
     //if not exist then i need to hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -32,7 +32,6 @@ export const registerUser = async (
 };
 
 
-
 export const loginUser = async (
   email: string,
   password: string
@@ -43,7 +42,7 @@ export const loginUser = async (
   });
 
   if (!user) {
-    return "Invalid email or password";
+    throw new Error("Invalid email or password");
   }
 
   const passwordMatch = await bcrypt.compare(
@@ -52,7 +51,7 @@ export const loginUser = async (
   );
 
   if (!passwordMatch) {
-    return "Invalid email or password";
+    throw new Error("Invalid email or password");
   }
 
   const token = jwt.sign(

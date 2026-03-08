@@ -1,31 +1,23 @@
 import { Request, Response } from "express";
-import prisma from "../config/prisma";
+import { getUserProfile } from "../services/user.service";
 
 export const getProfile = async (req: Request, res: Response) => {
   try {
 
     const userId = (req as any).user.userId;
 
-    const user = await prisma.users.findUnique({
-      where: {
-        id: userId
-      },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        created_at : true
-      }
-    });
+    const user = await getUserProfile(userId);
 
     res.json({
-      message: "User profile fetched from database",
+      message: "User profile fetched",
       user
     });
 
-  } catch (error) {
-    res.status(500).json({
-      message: "Server error"
+  } catch (error: any) {
+
+    res.status(404).json({
+      message: error.message
     });
+
   }
 };

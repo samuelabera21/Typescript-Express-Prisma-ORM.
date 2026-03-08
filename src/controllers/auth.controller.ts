@@ -12,13 +12,22 @@ export const register: RequestHandler = async (req, res) => {
 };
 
 export const login: RequestHandler = async (req, res) => {
-  const { email, password } = req.body;
+  try {
 
-  const result = await loginUser(email, password);
+    const { email, password } = req.body;
 
-  if (typeof result === "string") {
-    return res.status(401).json({ message: result });
+    const result = await loginUser(email, password);
+
+    return res.json({
+      message: "Login successful",
+      data: result
+    });
+
+  } catch (error: any) {
+
+    return res.status(401).json({
+      message: error.message
+    });
+
   }
-
-  return res.json(result);
 };
