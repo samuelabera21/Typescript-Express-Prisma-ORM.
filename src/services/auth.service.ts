@@ -18,14 +18,14 @@ export const registerUser = async (
     //if not exist then i need to hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
     
-
-const user = await prisma.users.create({
-  data: {
-    email: email,
-    password_hash: hashedPassword,
-    name: name,
-  },
-});
+//create user to database
+        const user = await prisma.users.create({
+        data: {
+            email: email,
+            password_hash: hashedPassword,
+            name: name,
+        },
+        });
   
-  return "Register logic coming soon";
+  return user;
 };
