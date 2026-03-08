@@ -33,3 +33,45 @@ export const deleteUserProfile = async (userId: number) => {
   };
 
 };
+
+
+
+export const updateUserProfile = async (
+  userId: number,
+  name?: string,
+  email?: string
+) => {
+
+  if (!name && !email) {
+    throw new Error("No fields provided for update");
+  }
+
+  if (email) {
+
+    const existingUser = await prisma.users.findUnique({
+      where: { email }
+    });
+
+    if (existingUser && existingUser.id !== userId) {
+      throw new Error("Email already in use");
+    }
+
+  }
+
+  const user = await prisma.users.update({
+    where: { id: userId },
+    data: {
+      name,
+      email
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      created_at: true
+    }
+  });
+
+  return user;
+};
