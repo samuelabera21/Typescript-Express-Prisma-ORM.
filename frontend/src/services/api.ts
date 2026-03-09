@@ -18,6 +18,8 @@ export async function apiFetch(
     "/auth/register",
     "/auth/refresh",
     "/auth/logout",
+    "/auth/verify-email",
+    "/auth/resend-verification",
   ].includes(path);
 
   const headers = new Headers(options.headers);

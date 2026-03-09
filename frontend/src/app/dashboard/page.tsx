@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getCurrentUser } from "@/services/auth.service";
+import { getCurrentUser, logoutUser } from "@/services/auth.service";
+import { useRouter } from "next/navigation";
 
 type UserProfile = {
   id: number;
@@ -12,9 +13,11 @@ type UserProfile = {
 };
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [logoutLoading, setLogoutLoading] = useState(false);
 
   useEffect(() => {
     async function loadUser() {
@@ -44,10 +47,27 @@ export default function DashboardPage() {
     return <p>No user found.</p>;
   }
 
+  const handleLogout = async () => {
+    setLogoutLoading(true);
+
+    try {
+      await logoutUser();
+      router.push("/login");
+    } catch (err) {
+      console.error(err);
+      setError("Logout failed. Please try again.");
+      setLogoutLoading(false);
+    }
+  };
+
   return (
-    <div>
+    <div className="auth-shell" style={{ marginTop: "2rem" }}>
       <h1>Dashboard</h1>
       <p>Welcome {user.email}</p>
+      <p>Session refresh is handled in the background while your cookies are valid.</p>
+      <button onClick={handleLogout} disabled={logoutLoading}>
+        {logoutLoading ? "Signing out..." : "Logout"}
+      </button>
     </div>
   );
 }

@@ -10,6 +10,11 @@ export type RegisterData = {
   password: string;
 };
 
+export type VerifyEmailData = {
+  email: string;
+  token: string;
+};
+
 export async function loginUser(data: LoginData) {
   return apiFetch("/auth/login", {
     method: "POST",
@@ -32,4 +37,18 @@ export async function logoutUser() {
 
 export async function getCurrentUser() {
   return apiFetch("/user/profile");
+}
+
+export async function verifyEmail(data: VerifyEmailData) {
+  return apiFetch("/auth/verify-email", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function resendVerificationEmail(email: string) {
+  return apiFetch("/auth/resend-verification", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
 }
