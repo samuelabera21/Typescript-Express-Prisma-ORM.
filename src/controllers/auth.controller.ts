@@ -1,9 +1,16 @@
 
 import { CookieOptions, RequestHandler } from "express";
 import { registerUser } from "../services/auth.service";
+import { deleteUnverifiedUserById } from "../services/auth.service";
 import { loginUser } from "../services/auth.service";
 
 import { refreshAccessToken } from "../services/auth.service";
+import { resendVerification } from "../services/auth.service";
+import { verifyEmailToken } from "../services/auth.service";
+import { sendVerificationEmail } from "../services/email.service";
+
+const showDebugVerificationLinks =
+  process.env.DEBUG_EMAIL_LINKS === "true";
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -27,9 +34,46 @@ const refreshCookieOptions: CookieOptions = {
 export const register: RequestHandler = async (req, res) => {
   const { email, password, name } = req.body;
 
-  const result = await registerUser(email, password, name);
+  try {
+    const result = await registerUser(email, password, name);
 
-  res.send(result);
+    try {
+      await sendVerificationEmail(email, result.verificationUrl);
+    } catch (emailError) {
+      await deleteUnverifiedUserById(result.user.id);
+      throw new Error(
+        `Could not send verification email. Please check RESEND settings and try again. ${
+          emailError instanceof Error ? emailError.message : ""
+        }`.trim()
+      );
+    }
+
+    const responseBody: {
+      message: string;
+      user: typeof result.user;
+      verificationUrl?: string;
+      verificationToken?: string;
+    } = {
+      message: "Registration successful. Verification email sent.",
+      user: result.user,
+    };
+
+    if (showDebugVerificationLinks) {
+      responseBody.verificationUrl = result.verificationUrl;
+      responseBody.verificationToken = result.verificationToken;
+    }
+
+    return res.status(201).json({
+      ...responseBody,
+    });
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Registration failed";
+
+    return res.status(400).json({
+      message,
+    });
+  }
 };
 
 export const login: RequestHandler = async (req, res) => {
@@ -98,4 +142,65 @@ export const logout: RequestHandler = async (_req, res) => {
   return res.json({
     message: "Logout successful"
   });
+};
+
+export const verifyEmail: RequestHandler = async (req, res) => {
+  try {
+    const { email, token } = req.body;
+
+    if (!email || !token) {
+      return res.status(400).json({
+        message: "Email and token are required",
+      });
+    }
+
+    const result = await verifyEmailToken(email, token);
+
+    return res.json(result);
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Email verification failed";
+
+    return res.status(400).json({
+      message,
+    });
+  }
+};
+
+export const resendVerificationEmail: RequestHandler = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        message: "Email is required",
+      });
+    }
+
+    const result = await resendVerification(email);
+
+    await sendVerificationEmail(email, result.verificationUrl);
+
+    const responseBody: {
+      message: string;
+      verificationUrl?: string;
+      verificationToken?: string;
+    } = {
+      message: "Verification email sent",
+    };
+
+    if (showDebugVerificationLinks) {
+      responseBody.verificationUrl = result.verificationUrl;
+      responseBody.verificationToken = result.verificationToken;
+    }
+
+    return res.json(responseBody);
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Unable to resend verification email";
+
+    return res.status(400).json({
+      message,
+    });
+  }
 };

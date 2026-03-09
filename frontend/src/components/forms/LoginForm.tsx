@@ -53,7 +53,7 @@ export default function LoginForm() {
         verificationUrl?: string;
       };
 
-      setMessage(result.message || "Verification email resent.");
+      setMessage(result.message || "Verification email resent. Please check your inbox.");
 
       if (result.verificationUrl) {
         setMessage(`${result.message} Open link: ${result.verificationUrl}`);

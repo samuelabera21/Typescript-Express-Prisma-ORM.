@@ -26,7 +26,7 @@ export default function RegisterForm() {
 
     try {
       const data = (await registerUser({ email, password })) as RegisterResponse;
-      setSuccess(data.message || "Registration successful. Check your verification email.");
+      setSuccess(data.message || "Registration successful. Check your inbox for the verification email.");
 
       if (data.verificationUrl) {
         setVerificationUrl(data.verificationUrl);

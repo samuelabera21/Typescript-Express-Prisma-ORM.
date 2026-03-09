@@ -81,7 +81,7 @@ export default function VerifyEmailForm() {
   return (
     <form onSubmit={handleVerify} className="auth-form">
       <h2>Verify Your Email</h2>
-      <p>Paste the token from your verification link, or use the auto-filled data from the URL.</p>
+      <p>Open the link from your inbox. This page can also verify using token and email from the URL.</p>
 
       {error && <p className="auth-error">{error}</p>}
       {success && <p className="auth-success">{success}</p>}
