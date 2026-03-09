@@ -1,7 +1,6 @@
 
 import { CookieOptions, RequestHandler } from "express";
 import { registerUser } from "../services/auth.service";
-import { deleteUnverifiedUserById } from "../services/auth.service";
 import { loginUser } from "../services/auth.service";
 
 import { refreshAccessToken } from "../services/auth.service";
@@ -41,7 +40,6 @@ export const register: RequestHandler = async (req, res) => {
       await sendVerificationEmail(email, result.verificationUrl);
     } catch (emailError) {
       if (!showDebugVerificationLinks) {
-        await deleteUnverifiedUserById(result.user.id);
         throw new Error(
           `Could not send verification email. Please check RESEND settings and try again. ${
             emailError instanceof Error ? emailError.message : ""
@@ -52,7 +50,6 @@ export const register: RequestHandler = async (req, res) => {
       return res.status(202).json({
         message:
           "Email provider blocked delivery in sandbox mode. Use the debug verification link below.",
-        user: result.user,
         verificationUrl: result.verificationUrl,
         verificationToken: result.verificationToken,
       });
@@ -60,12 +57,10 @@ export const register: RequestHandler = async (req, res) => {
 
     const responseBody: {
       message: string;
-      user: typeof result.user;
       verificationUrl?: string;
       verificationToken?: string;
     } = {
       message: "Registration successful. Verification email sent.",
-      user: result.user,
     };
 
     if (showDebugVerificationLinks) {

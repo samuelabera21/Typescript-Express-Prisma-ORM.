@@ -25,61 +25,41 @@ export const registerUser = async (
   password: string,
   name?: string
 ) => {
-
-    //here i need to check email is already exist or not
-        const existingUser = await prisma.users.findUnique({
-        where: { email },
-        });
-
-        if (existingUser) {
-        throw new Error("User already exists");
-        }
-    //if not exist then i need to hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const verificationToken = createVerificationToken();
-    const verificationExpires = createVerificationExpiry();
-    
-//create user to database
-        const user = await prisma.users.create({
-        data: {
-            email: email,
-            password_hash: hashedPassword,
-            name: name,
-            email_verified: false,
-            verification_token: verificationToken,
-            verification_expires: verificationExpires,
-        },
-        });
-
-  return {
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      email_verified: user.email_verified,
-    },
-    verificationToken,
-    verificationUrl: buildVerificationUrl(verificationToken, user.email),
-  };
-};
-
-export const deleteUnverifiedUserById = async (userId: number) => {
-  const user = await prisma.users.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      email_verified: true,
-    },
+  const existingUser = await prisma.users.findUnique({
+    where: { email },
   });
 
-  if (!user || user.email_verified) {
-    return;
+  if (existingUser?.email_verified) {
+    throw new Error("User already exists");
   }
 
-  await prisma.users.delete({
-    where: { id: userId },
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const verificationToken = createVerificationToken();
+  const verificationExpires = createVerificationExpiry();
+
+  await prisma.pending_users.upsert({
+    where: { email },
+    update: {
+      password_hash: hashedPassword,
+      name,
+      role: "user",
+      verification_token: verificationToken,
+      verification_expires: verificationExpires,
+    },
+    create: {
+      email,
+      password_hash: hashedPassword,
+      name,
+      role: "user",
+      verification_token: verificationToken,
+      verification_expires: verificationExpires,
+    },
   });
+
+  return {
+    verificationToken,
+    verificationUrl: buildVerificationUrl(verificationToken, email),
+  };
 };
 
 export const loginUser = async (
@@ -141,6 +121,60 @@ export const verifyEmailToken = async (
   email: string,
   token: string
 ) => {
+  const pending = await prisma.pending_users.findUnique({
+    where: { email },
+  });
+
+  if (pending) {
+    if (pending.verification_token !== token) {
+      throw new Error("Invalid verification link");
+    }
+
+    if (pending.verification_expires.getTime() < Date.now()) {
+      throw new Error("Verification link expired");
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const existingUser = await tx.users.findUnique({
+        where: { email },
+      });
+
+      if (existingUser) {
+        await tx.users.update({
+          where: { email },
+          data: {
+            password_hash: pending.password_hash,
+            name: pending.name,
+            role: pending.role,
+            email_verified: true,
+            verification_token: null,
+            verification_expires: null,
+          },
+        });
+      } else {
+        await tx.users.create({
+          data: {
+            email,
+            password_hash: pending.password_hash,
+            name: pending.name,
+            role: pending.role,
+            email_verified: true,
+            verification_token: null,
+            verification_expires: null,
+          },
+        });
+      }
+
+      await tx.pending_users.delete({
+        where: { email },
+      });
+    });
+
+    return {
+      message: "Email verified successfully",
+    };
+  }
+
   const user = await prisma.users.findUnique({
     where: { email },
   });
@@ -181,12 +215,35 @@ export const verifyEmailToken = async (
 };
 
 export const resendVerification = async (email: string) => {
+  const pending = await prisma.pending_users.findUnique({
+    where: { email },
+  });
+
+  if (pending) {
+    const verificationToken = createVerificationToken();
+    const verificationExpires = createVerificationExpiry();
+
+    await prisma.pending_users.update({
+      where: { email },
+      data: {
+        verification_token: verificationToken,
+        verification_expires: verificationExpires,
+      },
+    });
+
+    return {
+      message: "Verification email sent",
+      verificationToken,
+      verificationUrl: buildVerificationUrl(verificationToken, email),
+    };
+  }
+
   const user = await prisma.users.findUnique({
     where: { email },
   });
 
   if (!user) {
-    throw new Error("User not found");
+    throw new Error("No pending registration found for this email");
   }
 
   if (user.email_verified) {
