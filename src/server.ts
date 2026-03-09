@@ -6,6 +6,7 @@ import userRoutes from "./routes/user.routes";
 
 
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.routes";
 
 
@@ -21,6 +22,7 @@ app.use(
   })
 );
 app.use(express.json());
+app.use(cookieParser());
 app.use("/auth", authRoutes);
 app.use("/user", userRoutes);
 
