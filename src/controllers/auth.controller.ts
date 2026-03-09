@@ -40,12 +40,22 @@ export const register: RequestHandler = async (req, res) => {
     try {
       await sendVerificationEmail(email, result.verificationUrl);
     } catch (emailError) {
-      await deleteUnverifiedUserById(result.user.id);
-      throw new Error(
-        `Could not send verification email. Please check RESEND settings and try again. ${
-          emailError instanceof Error ? emailError.message : ""
-        }`.trim()
-      );
+      if (!showDebugVerificationLinks) {
+        await deleteUnverifiedUserById(result.user.id);
+        throw new Error(
+          `Could not send verification email. Please check RESEND settings and try again. ${
+            emailError instanceof Error ? emailError.message : ""
+          }`.trim()
+        );
+      }
+
+      return res.status(202).json({
+        message:
+          "Email provider blocked delivery in sandbox mode. Use the debug verification link below.",
+        user: result.user,
+        verificationUrl: result.verificationUrl,
+        verificationToken: result.verificationToken,
+      });
     }
 
     const responseBody: {
@@ -179,7 +189,20 @@ export const resendVerificationEmail: RequestHandler = async (req, res) => {
 
     const result = await resendVerification(email);
 
-    await sendVerificationEmail(email, result.verificationUrl);
+    try {
+      await sendVerificationEmail(email, result.verificationUrl);
+    } catch (emailError) {
+      if (!showDebugVerificationLinks) {
+        throw emailError;
+      }
+
+      return res.status(202).json({
+        message:
+          "Email provider blocked delivery in sandbox mode. Use the debug verification link below.",
+        verificationUrl: result.verificationUrl,
+        verificationToken: result.verificationToken,
+      });
+    }
 
     const responseBody: {
       message: string;

@@ -13,6 +13,19 @@ export default function VerifyEmailForm() {
   const [resending, setResending] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [autoVerifying, setAutoVerifying] = useState(false);
+  const [autoVerifyTried, setAutoVerifyTried] = useState(false);
+
+  const runVerify = async (verifyEmailValue: string, verifyTokenValue: string) => {
+    const result = (await verifyEmail({
+      email: verifyEmailValue,
+      token: verifyTokenValue,
+    })) as {
+      message?: string;
+    };
+
+    setSuccess(result.message || "Email verified successfully. You can login now.");
+  };
 
   useEffect(() => {
     const qpEmail = searchParams.get("email");
@@ -27,6 +40,30 @@ export default function VerifyEmailForm() {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    const qpEmail = searchParams.get("email") || "";
+    const qpToken = searchParams.get("token") || "";
+
+    if (!qpEmail || !qpToken || autoVerifyTried) {
+      return;
+    }
+
+    setAutoVerifyTried(true);
+    setAutoVerifying(true);
+    setError("");
+    setSuccess("");
+
+    runVerify(qpEmail, qpToken)
+      .catch((err: unknown) => {
+        const message =
+          err instanceof Error ? err.message : "Email verification failed";
+        setError(message);
+      })
+      .finally(() => {
+        setAutoVerifying(false);
+      });
+  }, [autoVerifyTried, searchParams]);
+
   const handleVerify = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -34,11 +71,7 @@ export default function VerifyEmailForm() {
     setSuccess("");
 
     try {
-      const result = (await verifyEmail({ email, token })) as {
-        message?: string;
-      };
-
-      setSuccess(result.message || "Email verified successfully. You can login now.");
+      await runVerify(email, token);
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Email verification failed";
@@ -82,6 +115,8 @@ export default function VerifyEmailForm() {
     <form onSubmit={handleVerify} className="auth-form">
       <h2>Verify Your Email</h2>
       <p>Open the link from your inbox. This page can also verify using token and email from the URL.</p>
+
+      {autoVerifying && <p>Verifying automatically from email link...</p>}
 
       {error && <p className="auth-error">{error}</p>}
       {success && <p className="auth-success">{success}</p>}
